@@ -26,6 +26,8 @@ SDL_Texture* background_texture = NULL;
 SDL_Texture* title_texture = NULL;
 SDL_Texture* press_enter_texture = NULL;
 SDL_Texture* limited_edition_texture = NULL;
+SDL_Texture* start_game_texture = NULL;
+SDL_Texture* choose_difficulty_texture = NULL;
 
 GameState current_game_state = GAME_STATE_TITLE_SCREEN;
 
@@ -149,14 +151,20 @@ void setup(void) {
 
     // Crée des textures pour le texte
     title_texture = load_text("DANMAKU ULTIMATE", font_title, red);
-    press_enter_texture = load_text("Press Enter to Start", font_text, white);
+    press_enter_texture = load_text("Press Enter to Go to MENU", font_text, white);
     limited_edition_texture = load_text("Limited Edition", font_text, white);
+
+    // Création des textures pour les options de menu
+    start_game_texture = load_text("Commencer le jeu", font_text, white);
+    choose_difficulty_texture = load_text("Choisir la difficulté", font_text, white);
 
     // Ferme les polices après utilisation
     TTF_CloseFont(font_title);
     TTF_CloseFont(font_text);
 
-    // Initialize the ball object moving down at a constant velocity
+    
+
+    // Initialize  ball object moving down at a constant velocity
     ball.x = 10;
     ball.y = 20;
     ball.width = 20;
@@ -171,6 +179,7 @@ void setup(void) {
 ///////////////////////////////////////////////////////////////////////////////
 void process_input(void) {
     SDL_Event event;
+    static int menu_option = 0; // 0 pour "Commencer", 1 pour "Difficulté"
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
         case SDL_QUIT:
@@ -187,6 +196,19 @@ void process_input(void) {
                 // Ici, ajoutez la logique pour naviguer dans le menu
                 // par exemple, utiliser les touches fléchées pour changer de sélection,
                 // et Entrée pour sélectionner une option.
+
+                if (event.key.keysym.sym == SDLK_RETURN) {
+                    if (menu_option == 0) {
+                        current_game_state = GAME_STATE_PLAYING;
+                    }
+                    else if (menu_option == 1) {
+                        // Logique pour choisir la difficulté
+                    }
+                }
+                else if (event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SDLK_UP) {
+                    menu_option = 1 - menu_option; // Alterne entre 0 et 1
+                }
+
                 break;
             case GAME_STATE_PLAYING:
                 // Ici, ajoutez la logique pour le déplacement du joueur, le tir, etc.
@@ -272,6 +294,7 @@ void update(void) {
 void render(void) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
+    SDL_Rect start_game_rect;
 
     switch (current_game_state) {
     case GAME_STATE_TITLE_SCREEN:
@@ -316,6 +339,21 @@ void render(void) {
     case GAME_STATE_MENU:
         // Dessinez le menu ici
         // Inclure le dessin des options de menu et des sélections actuelles
+
+         // Dessinez ici les options de menu
+        
+        SDL_QueryTexture(start_game_texture, NULL, NULL, &start_game_rect.w, &start_game_rect.h);
+        start_game_rect.x = (WINDOW_WIDTH - start_game_rect.w) / 2;
+        start_game_rect.y = WINDOW_HEIGHT / 2 - start_game_rect.h; // Ajustez ces positions selon les besoins
+        SDL_RenderCopy(renderer, start_game_texture, NULL, &start_game_rect);
+
+        SDL_Rect choose_difficulty_rect;
+        SDL_QueryTexture(choose_difficulty_texture, NULL, NULL, &choose_difficulty_rect.w, &choose_difficulty_rect.h);
+        choose_difficulty_rect.x = (WINDOW_WIDTH - choose_difficulty_rect.w) / 2;
+        choose_difficulty_rect.y = WINDOW_HEIGHT / 2; // Ajustez ces positions selon les besoins
+        SDL_RenderCopy(renderer, choose_difficulty_texture, NULL, &choose_difficulty_rect);
+        break;
+
         break;
     case GAME_STATE_PLAYING:
         // Dessinez les objets de jeu ici
