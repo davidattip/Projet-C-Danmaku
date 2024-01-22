@@ -1,0 +1,3 @@
+﻿  main.c
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(241,59): warning C4244: 'initialisation' : conversion de 'double' en 'float', perte possible de données
+  Danmaku Ultimate.vcxproj -> C:\Users\david\source\repos\Danmaku Ultimate\x64\Debug\Danmaku Ultimate.exe
