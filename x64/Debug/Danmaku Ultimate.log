@@ -1,8 +1,11 @@
 ﻿  main.c
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(277,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(280,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(283,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(288,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(313,62): warning C4018: '>=' : incompatibilité signed/unsigned
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(417,50): warning C4018: '>=' : incompatibilité signed/unsigned
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(292,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(295,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(298,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(303,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(328,62): warning C4018: '>=' : incompatibilité signed/unsigned
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(397,48): warning C4244: '=' : conversion de 'int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(451,50): warning C4018: '>=' : incompatibilité signed/unsigned
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(658,5): warning C4013: 'srand' non défini(e) ; extern retournant int pris par défaut
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(658,11): warning C4013: 'time' non défini(e) ; extern retournant int pris par défaut
   Danmaku Ultimate.vcxproj -> C:\Users\david\source\repos\Danmaku Ultimate\x64\Debug\Danmaku Ultimate.exe

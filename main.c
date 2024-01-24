@@ -18,11 +18,12 @@ typedef enum {
 typedef struct {
     float x;
     float y;
+    float vel_x; // Ajout de la vitesse horizontale
     float vel_y;
     bool active; // Indique si le projectile est actif (en déplacement)
 } Projectile;
 
-#define MAX_PROJECTILES 10 // Nombre maximum de projectiles en même temps
+#define MAX_PROJECTILES 20 // Nombre maximum de projectiles en même temps
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,6 +34,12 @@ int last_frame_time = 0;
 // Ajoutez une nouvelle variable globale pour la vitesse du vaisseau
 const int SHIP_SPEED = 300;
 const int SHIP_TURN_TIME = 200; // Temps en millisecondes pour afficher le vaisseau tournant
+const int ENEMY_SPEED = 100;
+bool movingRight = true;
+int player_lives = 3; // Le joueur commence avec 3 vies
+SDL_Rect life_rects[3]; // Pour afficher les 3 cœurs
+SDL_Texture* heart_texture = NULL; // Texture pour le cœur
+
 
 // Projectiles
 Projectile projectiles[MAX_PROJECTILES];
@@ -170,6 +177,14 @@ void setup(void) {
     // Charger la texture du vaisseau ennemi et des projectiles
     enemy_ship_texture = load_texture("enemy_ship.png");
     projectile_texture = load_texture("enemy_boule.png");
+    heart_texture = load_texture("coeur.png");
+    for (int i = 0; i < player_lives; ++i) {
+        life_rects[i].x = 10 + (i * 30); // 10 pixels de décalage plus largeur du cœur plus un peu d'espace
+        life_rects[i].y = 10; // 10 pixels du haut de l'écran
+        life_rects[i].w = 20; // Largeur du cœur
+        life_rects[i].h = 20; // Hauteur du cœur
+    }
+
 
     // Ouvre la police avec une plus grande taille pour le titre
     TTF_Font* font_title = TTF_OpenFont("PermanentMarker-Regular.ttf", 64); // Ajustez la taille selon les besoins
@@ -349,8 +364,11 @@ void handle_collisions(void) {
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         if (projectiles[i].active && check_collision(&ship, &projectiles[i])) {
             // Gérer la collision, par exemple en finissant le jeu
-            current_game_state = GAME_STATE_GAME_OVER;
             projectiles[i].active = false; // Désactiver le projectile
+            player_lives--; // Décrémenter une vie
+            if (player_lives <= 0) {
+                current_game_state = GAME_STATE_GAME_OVER;
+            }
         }
     }
 }
@@ -359,9 +377,11 @@ void handle_collisions(void) {
 void update_projectiles(float delta_time) {
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         if (projectiles[i].active) {
+            projectiles[i].x += projectiles[i].vel_x * delta_time;
             projectiles[i].y += projectiles[i].vel_y * delta_time;
+
             // Désactiver le projectile s'il sort de l'écran
-            if (projectiles[i].y > WINDOW_HEIGHT) {
+            if (projectiles[i].y > WINDOW_HEIGHT || projectiles[i].x < 0 || projectiles[i].x > WINDOW_WIDTH) {
                 projectiles[i].active = false;
             }
         }
@@ -373,7 +393,8 @@ void shoot_projectile(void) {
         if (!projectiles[i].active) {
             projectiles[i].x = enemy_ship.x + enemy_ship.width / 2 - 8; // Centrer le projectile
             projectiles[i].y = enemy_ship.y + enemy_ship.height; // Partir de la base du vaisseau ennemi
-            projectiles[i].vel_y = 200; // Vitesse de déplacement vers le bas
+            projectiles[i].vel_y = 300; // Vitesse de déplacement vers le bas
+            projectiles[i].vel_x = movingRight ? 100 : -100; // Vitesse horizontale
             projectiles[i].active = true; // Activer le projectile
             break; // Ne pas créer plus d'un projectile à la fois
         }
@@ -383,8 +404,21 @@ void shoot_projectile(void) {
 void update_enemy(float delta_time) {
     // Ajouter des tirs ici si nécessaire
     // Par exemple, tirer un projectile à intervalles réguliers
+      // Faire bouger l'ennemi horizontalement
+    if (movingRight) {
+        enemy_ship.x += ENEMY_SPEED * delta_time;
+        if (enemy_ship.x + enemy_ship.width > WINDOW_WIDTH) {
+            movingRight = false;
+        }
+    }
+    else {
+        enemy_ship.x -= ENEMY_SPEED * delta_time;
+        if (enemy_ship.x < 0) {
+            movingRight = true;
+        }
+    }
     static Uint32 last_shot_time = 0;
-    if (SDL_GetTicks() - last_shot_time > 1000) { // Tirs toutes les 1 secondes
+    if (SDL_GetTicks() - last_shot_time > 750) { // Tirs toutes les 1 secondes
         shoot_projectile();
         last_shot_time = SDL_GetTicks();
     }
@@ -561,6 +595,11 @@ void render(void) {
                 SDL_RenderCopy(renderer, projectile_texture, NULL, &projectile_rect);
             }
         }
+        // Dessiner les vies
+        for (int i = 0; i < player_lives; ++i) {
+            SDL_RenderCopy(renderer, heart_texture, NULL, &life_rects[i]);
+        }
+
         break;
     case GAME_STATE_GAME_OVER:
         // Dessinez l'écran de game over ici
@@ -600,6 +639,8 @@ void destroy_window(void) {
     SDL_DestroyTexture(enemy_ship_texture);
     SDL_DestroyTexture(projectile_texture);
     SDL_DestroyTexture(background_texture);
+    SDL_DestroyTexture(heart_texture);
+
     SDL_DestroyTexture(title_texture);
     SDL_DestroyTexture(press_enter_texture);
     SDL_DestroyTexture(limited_edition_texture);
@@ -614,6 +655,7 @@ void destroy_window(void) {
 // Main function
 ///////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* args[]) {
+    srand(time(NULL)); // Initialisation pour la génération de nombres aléatoires
     game_is_running = initialize_window();
 
     setup();
