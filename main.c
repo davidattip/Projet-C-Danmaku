@@ -37,6 +37,13 @@ const int SHIP_TURN_TIME = 200; // Temps en millisecondes pour afficher le vaiss
 const int ENEMY_SPEED = 100;
 bool movingRight = true;
 int player_lives = 3; // Le joueur commence avec 3 vies
+int score = 0;
+int lives = 3;
+TTF_Font* font_text = NULL;
+SDL_Color white = { 255, 255, 255, 255 }; // Blanc
+
+
+Uint32 start_time = 0;
 SDL_Rect life_rects[3]; // Pour afficher les 3 cœurs
 SDL_Texture* heart_texture = NULL; // Texture pour le cœur
 
@@ -360,6 +367,11 @@ bool check_collision(struct game_object* a, Projectile* b) {
     return true; // Collision
 }
 
+void change_state_to_playing(void) {
+    current_game_state = GAME_STATE_PLAYING;
+    start_time = SDL_GetTicks(); // Démarre le compteur de score quand le jeu commence réellement
+}
+
 void handle_collisions(void) {
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         if (projectiles[i].active && check_collision(&ship, &projectiles[i])) {
@@ -436,6 +448,7 @@ void update(void) {
         // Mettez à jour la logique du menu ici si nécessaire
         break;
     case GAME_STATE_PLAYING:
+        score = (SDL_GetTicks() - start_time) / 1000; // Convertissez le temps en secondes
         // Mettez à jour la position des objets, vérifiez les collisions, etc.
         // Mise à jour de la position du vaisseau
         ship.x += ship.vel_x * delta_time;
@@ -494,6 +507,18 @@ void update(void) {
         ball.y = WINDOW_HEIGHT - ball.height;
         ball.vel_y = -ball.vel_y;
     }*/
+}
+
+// Fonction pour rendre le score à l'écran
+void render_score(SDL_Renderer* renderer, TTF_Font* font, SDL_Color color, int score) {
+
+    char score_text[50];
+    sprintf_s(score_text, sizeof(score_text), "Score: %d", score);
+    SDL_Texture* score_texture = load_text(score_text, font, color);
+    SDL_Rect score_rect = { WINDOW_WIDTH - 150, 10, 0, 0 };
+    SDL_QueryTexture(score_texture, NULL, NULL, &score_rect.w, &score_rect.h);
+    SDL_RenderCopy(renderer, score_texture, NULL, &score_rect);
+    SDL_DestroyTexture(score_texture);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -599,7 +624,12 @@ void render(void) {
         for (int i = 0; i < player_lives; ++i) {
             SDL_RenderCopy(renderer, heart_texture, NULL, &life_rects[i]);
         }
-
+        TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32); // Ajustez la taille selon les besoins
+        if (!font_text) {
+            fprintf(stderr, "Error loading font for text: %s\n", TTF_GetError());
+            exit(1);
+        }
+        render_score(renderer, font_text, white, score);
         break;
     case GAME_STATE_GAME_OVER:
         // Dessinez l'écran de game over ici
@@ -641,6 +671,11 @@ void destroy_window(void) {
     SDL_DestroyTexture(background_texture);
     SDL_DestroyTexture(heart_texture);
 
+
+    if (font_text != NULL) {
+        TTF_CloseFont(font_text);
+        font_text = NULL;
+    }
     SDL_DestroyTexture(title_texture);
     SDL_DestroyTexture(press_enter_texture);
     SDL_DestroyTexture(limited_edition_texture);
