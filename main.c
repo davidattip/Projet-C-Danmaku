@@ -20,6 +20,9 @@ typedef enum {
 ///////////////////////////////////////////////////////////////////////////////
 int game_is_running = false;
 int last_frame_time = 0;
+// Ajoutez une nouvelle variable globale pour la vitesse du vaisseau
+const int SHIP_SPEED = 300;
+const int SHIP_TURN_TIME = 200; // Temps en millisecondes pour afficher le vaisseau tournant
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 SDL_Texture* background_texture = NULL;
@@ -28,8 +31,16 @@ SDL_Texture* press_enter_texture = NULL;
 SDL_Texture* limited_edition_texture = NULL;
 SDL_Texture* start_game_texture = NULL;
 SDL_Texture* choose_difficulty_texture = NULL;
+// Textures pour le vaisseau spatial
+SDL_Texture* ship_texture_up = NULL;
+SDL_Texture* ship_texture_right = NULL;
+SDL_Texture* ship_texture_left = NULL;
 
 GameState current_game_state = GAME_STATE_TITLE_SCREEN;
+
+// Variable pour suivre l'état du vaisseau
+Uint32 last_key_press_time = 0;
+SDL_Texture* current_ship_texture = NULL;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Declare two game objects for the ball and the paddle
@@ -41,7 +52,10 @@ struct game_object {
     float height;
     float vel_x;
     float vel_y;
-} ball, paddle;
+    
+} ship,ball, paddle;
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Function to initialize our SDL window
@@ -128,6 +142,11 @@ SDL_Texture* load_text(const char* text, TTF_Font* font, SDL_Color color) {
 void setup(void) {
     // Load the background image
     background_texture = load_texture("image_accueil.png");
+    // Charger les textures pour le vaisseau
+    ship_texture_up = load_texture("ship_up.png");
+    ship_texture_right = load_texture("ship_right.png");
+    ship_texture_left = load_texture("ship_left.png");
+    current_ship_texture = ship_texture_up; // Texture de départ
 
     // Ouvre la police avec une plus grande taille pour le titre
     TTF_Font* font_title = TTF_OpenFont("PermanentMarker-Regular.ttf", 64); // Ajustez la taille selon les besoins
@@ -171,6 +190,14 @@ void setup(void) {
     ball.height = 20;
     ball.vel_x = 180;
     ball.vel_y = 140;
+
+    // Initialiser le vaisseau spatial
+    ship.x = WINDOW_WIDTH / 2;
+    ship.y = WINDOW_HEIGHT / 2;
+    ship.width = 64;  // La largeur de la texture du vaisseau
+    ship.height = 64; // La hauteur de la texture du vaisseau
+    ship.vel_x = 0;
+    ship.vel_y = 0;
 }
 
 
@@ -212,6 +239,25 @@ void process_input(void) {
                 break;
             case GAME_STATE_PLAYING:
                 // Ici, ajoutez la logique pour le déplacement du joueur, le tir, etc.
+                switch (event.key.keysym.sym) {
+                case SDLK_UP:
+                    ship.vel_y = -SHIP_SPEED;
+                    break;
+                case SDLK_DOWN:
+                    ship.vel_y = SHIP_SPEED;
+                    break;
+                case SDLK_LEFT:
+                    ship.vel_x = -SHIP_SPEED;
+                    last_key_press_time = SDL_GetTicks();
+                    current_ship_texture = ship_texture_left;
+                    break;
+                case SDLK_RIGHT:
+                    ship.vel_x = SHIP_SPEED;
+                    last_key_press_time = SDL_GetTicks();
+                    current_ship_texture = ship_texture_right;
+                    break;
+                }
+                break;
                 break;
             case GAME_STATE_GAME_OVER:
                 if (event.key.keysym.sym == SDLK_RETURN) {
@@ -221,6 +267,20 @@ void process_input(void) {
             }
             if (event.key.keysym.sym == SDLK_ESCAPE) {
                 game_is_running = false;
+            }
+            break;
+        case SDL_KEYUP:
+            if (current_game_state == GAME_STATE_PLAYING) {
+                if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_DOWN) {
+                    ship.vel_y = 0;
+                }
+                if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT) {
+                    ship.vel_x = 0;
+                    // Réinitialiser la texture du vaisseau après la fin du mouvement
+                    if (SDL_GetTicks() - last_key_press_time >= SHIP_TURN_TIME) {
+                        current_ship_texture = ship_texture_up;
+                    }
+                }
             }
             break;
         }
@@ -244,6 +304,9 @@ void process_input(void) {
 // Update function with a fixed time step
 ///////////////////////////////////////////////////////////////////////////////
 void update(void) {
+
+    float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
+
     switch (current_game_state) {
     case GAME_STATE_TITLE_SCREEN:
         // Pas de mise à jour nécessaire pour l'écran titre
@@ -253,6 +316,20 @@ void update(void) {
         break;
     case GAME_STATE_PLAYING:
         // Mettez à jour la position des objets, vérifiez les collisions, etc.
+        // Mise à jour de la position du vaisseau
+        ship.x += ship.vel_x * delta_time;
+        ship.y += ship.vel_y * delta_time;
+
+        // Vérifier que le vaisseau ne sort pas de l'écran
+        if (ship.x < 0) ship.x = 0;
+        if (ship.x + ship.width > WINDOW_WIDTH) ship.x = WINDOW_WIDTH - ship.width;
+        if (ship.y < 0) ship.y = 0;
+        if (ship.y + ship.height > WINDOW_HEIGHT) ship.y = WINDOW_HEIGHT - ship.height;
+
+        // Réinitialiser la texture du vaisseau après la fin du mouvement
+        if (SDL_GetTicks() - last_key_press_time >= SHIP_TURN_TIME) {
+            current_ship_texture = ship_texture_up;
+        }
         break;
     case GAME_STATE_GAME_OVER:
         // Peut-être clignoter le texte ou mettre en place un délai avant de permettre la réinitialisation
@@ -260,7 +337,7 @@ void update(void) {
     }
 
     // Get delta_time factor converted to seconds to be used to update objects
-    float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0;
+    
 
     // Store the milliseconds of the current frame to be used in the next one
     last_frame_time = SDL_GetTicks();
@@ -357,7 +434,16 @@ void render(void) {
         break;
     case GAME_STATE_PLAYING:
         // Dessinez les objets de jeu ici
+        ;
         // Inclure le joueur, les ennemis, les projectiles, etc.
+        // Dessiner le vaisseau spatial
+        SDL_Rect ship_rect = {
+            (int)ship.x,
+            (int)ship.y,
+            (int)ship.width,
+            (int)ship.height
+        };
+        SDL_RenderCopy(renderer, current_ship_texture, NULL, &ship_rect);
         break;
     case GAME_STATE_GAME_OVER:
         // Dessinez l'écran de game over ici
@@ -390,6 +476,10 @@ void render(void) {
 // Function to destroy SDL window and renderer
 ///////////////////////////////////////////////////////////////////////////////
 void destroy_window(void) {
+    // Libérer les textures du vaisseau spatial
+    SDL_DestroyTexture(ship_texture_up);
+    SDL_DestroyTexture(ship_texture_right);
+    SDL_DestroyTexture(ship_texture_left);
     SDL_DestroyTexture(background_texture);
     SDL_DestroyTexture(title_texture);
     SDL_DestroyTexture(press_enter_texture);
@@ -412,7 +502,7 @@ int main(int argc, char* args[]) {
     while (game_is_running) {
         process_input();
 
-       /* update();*/
+       update();
 
         render();
     }

@@ -1,3 +1,8 @@
 ﻿  main.c
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(263,59): warning C4244: 'initialisation' : conversion de 'double' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(244,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(247,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(250,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(255,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(280,62): warning C4018: '>=' : incompatibilité signed/unsigned
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(330,50): warning C4018: '>=' : incompatibilité signed/unsigned
   Danmaku Ultimate.vcxproj -> C:\Users\david\source\repos\Danmaku Ultimate\x64\Debug\Danmaku Ultimate.exe
