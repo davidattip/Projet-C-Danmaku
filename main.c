@@ -15,6 +15,16 @@ typedef enum {
     GAME_STATE_GAME_OVER
 } GameState;
 
+typedef struct {
+    float x;
+    float y;
+    float vel_y;
+    bool active; // Indique si le projectile est actif (en déplacement)
+} Projectile;
+
+#define MAX_PROJECTILES 10 // Nombre maximum de projectiles en même temps
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Global variables
 ///////////////////////////////////////////////////////////////////////////////
@@ -23,6 +33,11 @@ int last_frame_time = 0;
 // Ajoutez une nouvelle variable globale pour la vitesse du vaisseau
 const int SHIP_SPEED = 300;
 const int SHIP_TURN_TIME = 200; // Temps en millisecondes pour afficher le vaisseau tournant
+
+// Projectiles
+Projectile projectiles[MAX_PROJECTILES];
+
+
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 SDL_Texture* background_texture = NULL;
@@ -35,6 +50,8 @@ SDL_Texture* choose_difficulty_texture = NULL;
 SDL_Texture* ship_texture_up = NULL;
 SDL_Texture* ship_texture_right = NULL;
 SDL_Texture* ship_texture_left = NULL;
+SDL_Texture* enemy_ship_texture = NULL;
+SDL_Texture* projectile_texture = NULL;
 
 GameState current_game_state = GAME_STATE_TITLE_SCREEN;
 
@@ -54,6 +71,9 @@ struct game_object {
     float vel_y;
     
 } ship,ball, paddle;
+
+// Vaisseau ennemi
+struct game_object enemy_ship;
 
 
 
@@ -147,6 +167,9 @@ void setup(void) {
     ship_texture_right = load_texture("ship_right.png");
     ship_texture_left = load_texture("ship_left.png");
     current_ship_texture = ship_texture_up; // Texture de départ
+    // Charger la texture du vaisseau ennemi et des projectiles
+    enemy_ship_texture = load_texture("enemy_ship.png");
+    projectile_texture = load_texture("enemy_boule.png");
 
     // Ouvre la police avec une plus grande taille pour le titre
     TTF_Font* font_title = TTF_OpenFont("PermanentMarker-Regular.ttf", 64); // Ajustez la taille selon les besoins
@@ -198,6 +221,16 @@ void setup(void) {
     ship.height = 64; // La hauteur de la texture du vaisseau
     ship.vel_x = 0;
     ship.vel_y = 0;
+
+    // Initialiser le vaisseau ennemi
+    enemy_ship.x = WINDOW_WIDTH / 2 - 32; // Centré en x, 32 étant la moitié de la largeur du vaisseau ennemi
+    enemy_ship.y = 50; // Un peu en dessous du haut de l'écran
+    enemy_ship.width = 64; // Supposons que le vaisseau ennemi a une largeur de 64 pixels
+    enemy_ship.height = 64; // Supposons que le vaisseau ennemi a une hauteur de 64 pixels
+    // Initialiser les projectiles
+    for (int i = 0; i < MAX_PROJECTILES; ++i) {
+        projectiles[i].active = false;
+    }
 }
 
 
@@ -303,6 +336,60 @@ void process_input(void) {
 ///////////////////////////////////////////////////////////////////////////////
 // Update function with a fixed time step
 ///////////////////////////////////////////////////////////////////////////////
+
+bool check_collision(struct game_object* a, Projectile* b) {
+    if (a->x + a->width < b->x || b->x + 16 < a->x ||
+        a->y + a->height < b->y || b->y + 16 < a->y) {
+        return false; // Pas de collision
+    }
+    return true; // Collision
+}
+
+void handle_collisions(void) {
+    for (int i = 0; i < MAX_PROJECTILES; ++i) {
+        if (projectiles[i].active && check_collision(&ship, &projectiles[i])) {
+            // Gérer la collision, par exemple en finissant le jeu
+            current_game_state = GAME_STATE_GAME_OVER;
+            projectiles[i].active = false; // Désactiver le projectile
+        }
+    }
+}
+
+
+void update_projectiles(float delta_time) {
+    for (int i = 0; i < MAX_PROJECTILES; ++i) {
+        if (projectiles[i].active) {
+            projectiles[i].y += projectiles[i].vel_y * delta_time;
+            // Désactiver le projectile s'il sort de l'écran
+            if (projectiles[i].y > WINDOW_HEIGHT) {
+                projectiles[i].active = false;
+            }
+        }
+    }
+}
+
+void shoot_projectile(void) {
+    for (int i = 0; i < MAX_PROJECTILES; ++i) {
+        if (!projectiles[i].active) {
+            projectiles[i].x = enemy_ship.x + enemy_ship.width / 2 - 8; // Centrer le projectile
+            projectiles[i].y = enemy_ship.y + enemy_ship.height; // Partir de la base du vaisseau ennemi
+            projectiles[i].vel_y = 200; // Vitesse de déplacement vers le bas
+            projectiles[i].active = true; // Activer le projectile
+            break; // Ne pas créer plus d'un projectile à la fois
+        }
+    }
+}
+
+void update_enemy(float delta_time) {
+    // Ajouter des tirs ici si nécessaire
+    // Par exemple, tirer un projectile à intervalles réguliers
+    static Uint32 last_shot_time = 0;
+    if (SDL_GetTicks() - last_shot_time > 1000) { // Tirs toutes les 1 secondes
+        shoot_projectile();
+        last_shot_time = SDL_GetTicks();
+    }
+}
+
 void update(void) {
 
     float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
@@ -330,6 +417,16 @@ void update(void) {
         if (SDL_GetTicks() - last_key_press_time >= SHIP_TURN_TIME) {
             current_ship_texture = ship_texture_up;
         }
+        static Uint32 last_shoot_time = 0;
+        if (SDL_GetTicks() - last_shoot_time > 2000) { // Toutes les 2 secondes
+            shoot_projectile();
+            last_shoot_time = SDL_GetTicks();
+        }
+        // Mise à jour de l'ennemi
+        update_enemy(delta_time);
+        update_projectiles(delta_time);
+        // Gérer les collisions
+        handle_collisions();
         break;
     case GAME_STATE_GAME_OVER:
         // Peut-être clignoter le texte ou mettre en place un délai avant de permettre la réinitialisation
@@ -444,6 +541,26 @@ void render(void) {
             (int)ship.height
         };
         SDL_RenderCopy(renderer, current_ship_texture, NULL, &ship_rect);
+        // Dessiner le vaisseau ennemi
+        SDL_Rect enemy_rect = {
+            (int)enemy_ship.x,
+            (int)enemy_ship.y,
+            (int)enemy_ship.width,
+            (int)enemy_ship.height
+        };
+        SDL_RenderCopy(renderer, enemy_ship_texture, NULL, &enemy_rect);
+        // Dessiner les projectiles
+        for (int i = 0; i < MAX_PROJECTILES; ++i) {
+            if (projectiles[i].active) {
+                SDL_Rect projectile_rect = {
+                    (int)projectiles[i].x,
+                    (int)projectiles[i].y,
+                    16, // Largeur du projectile
+                    16  // Hauteur du projectile
+                };
+                SDL_RenderCopy(renderer, projectile_texture, NULL, &projectile_rect);
+            }
+        }
         break;
     case GAME_STATE_GAME_OVER:
         // Dessinez l'écran de game over ici
@@ -480,6 +597,8 @@ void destroy_window(void) {
     SDL_DestroyTexture(ship_texture_up);
     SDL_DestroyTexture(ship_texture_right);
     SDL_DestroyTexture(ship_texture_left);
+    SDL_DestroyTexture(enemy_ship_texture);
+    SDL_DestroyTexture(projectile_texture);
     SDL_DestroyTexture(background_texture);
     SDL_DestroyTexture(title_texture);
     SDL_DestroyTexture(press_enter_texture);
