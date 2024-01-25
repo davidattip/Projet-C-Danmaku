@@ -1,11 +1,11 @@
 ﻿  main.c
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(299,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(302,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(305,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(310,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(335,62): warning C4018: '>=' : incompatibilité signed/unsigned
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(409,48): warning C4244: '=' : conversion de 'int' en 'float', perte possible de données
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(464,50): warning C4018: '>=' : incompatibilité signed/unsigned
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(693,5): warning C4013: 'srand' non défini(e) ; extern retournant int pris par défaut
-C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(693,11): warning C4013: 'time' non défini(e) ; extern retournant int pris par défaut
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(339,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(342,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(345,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(350,34): warning C4244: '=' : conversion de 'const int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(379,62): warning C4018: '>=' : incompatibilité signed/unsigned
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(475,48): warning C4244: 'initialisation' : conversion de 'int' en 'float', perte possible de données
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(546,50): warning C4018: '>=' : incompatibilité signed/unsigned
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(821,5): warning C4013: 'srand' non défini(e) ; extern retournant int pris par défaut
+C:\Users\david\source\repos\Danmaku Ultimate\Danmaku Ultimate\main.c(821,11): warning C4013: 'time' non défini(e) ; extern retournant int pris par défaut
   Danmaku Ultimate.vcxproj -> C:\Users\david\source\repos\Danmaku Ultimate\x64\Debug\Danmaku Ultimate.exe

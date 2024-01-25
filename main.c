@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #include "constants.h"
 
 
@@ -23,7 +24,24 @@ typedef struct {
     bool active; // Indique si le projectile est actif (en déplacement)
 } Projectile;
 
-#define MAX_PROJECTILES 20 // Nombre maximum de projectiles en même temps
+typedef struct {
+    float vel_x;
+    float vel_y;
+} Direction;
+
+Direction shoot_directions[] = {
+    {0, 300},     // Bas
+    {100, 300},   // Diagonale bas droite
+    {-100, 300},  // Diagonale bas gauche
+    {200, 300},   // Plus à droite
+    {-200, 300},  // Plus à gauche
+    {-150, 300},
+    {150, 300}
+    // Ajoutez plus de directions ici si nécessaire
+};
+
+#define MAX_PROJECTILES 30 // Nombre maximum de projectiles en même temps
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,7 +59,10 @@ int score = 0;
 int lives = 3;
 TTF_Font* font_text = NULL;
 SDL_Color white = { 255, 255, 255, 255 }; // Blanc
+Mix_Music* backgroundMusic = NULL;
 
+SDL_Texture* game_over_texture = NULL;
+SDL_Texture* restart_texture = NULL;
 
 Uint32 start_time = 0;
 SDL_Rect life_rects[3]; // Pour afficher les 3 cœurs
@@ -99,6 +120,11 @@ int initialize_window(void) {
         fprintf(stderr, "Error initializing SDL.\n");
         return false;
     }
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        fprintf(stderr, "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+        exit(1);
+    }
+
     window = SDL_CreateWindow(
         "Danmaku Ultimate",
         SDL_WINDOWPOS_CENTERED,
@@ -181,6 +207,12 @@ void setup(void) {
     ship_texture_right = load_texture("ship_right.png");
     ship_texture_left = load_texture("ship_left.png");
     current_ship_texture = ship_texture_up; // Texture de départ
+    // Chargement de la musique de fond
+    backgroundMusic = Mix_LoadMUS("music_fond.mp3");
+    if (backgroundMusic == NULL) {
+        fprintf(stderr, "Failed to load background music! SDL_mixer Error: %s\n", Mix_GetError());
+        // Gérer l'erreur ou quitter
+    }
     // Charger la texture du vaisseau ennemi et des projectiles
     enemy_ship_texture = load_texture("enemy_ship.png");
     projectile_texture = load_texture("enemy_boule.png");
@@ -217,6 +249,8 @@ void setup(void) {
     title_texture = load_text("DANMAKU ULTIMATE", font_title, red);
     press_enter_texture = load_text("Press Enter to Go to MENU", font_text, white);
     limited_edition_texture = load_text("Limited Edition", font_text, white);
+    game_over_texture = load_text("GAME OVER", font_title, red);
+    restart_texture = load_text("Press Enter to Restart", font_text, white);
 
     // Création des textures pour les options de menu
     start_game_texture = load_text("Commencer le jeu", font_text, white);
@@ -253,6 +287,12 @@ void setup(void) {
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         projectiles[i].active = false;
     }
+    // Dans setup() ou au début d'un niveau
+    if (backgroundMusic != NULL) {
+        Mix_PlayMusic(backgroundMusic, -1); // -1 signifie en boucle indéfiniment
+    }
+
+    
 }
 
 
@@ -316,7 +356,11 @@ void process_input(void) {
                 break;
             case GAME_STATE_GAME_OVER:
                 if (event.key.keysym.sym == SDLK_RETURN) {
-                    // Ici, redémarrez le jeu ou retournez au menu principal
+                    // Reset the game state and player lives to restart the game
+                    current_game_state = GAME_STATE_PLAYING;
+                    player_lives = 3;
+                    setup(); // Reset the game setup
+                    
                 }
                 break;
             }
@@ -367,9 +411,25 @@ bool check_collision(struct game_object* a, Projectile* b) {
     return true; // Collision
 }
 
+void reset_game(void) {
+    player_lives = 3;
+    score = 0;
+    start_time = SDL_GetTicks();
+    // Réinitialiser d'autres états de jeu si nécessaire
+    // Réinitialiser la position du vaisseau, etc.
+    ship.x = WINDOW_WIDTH / 2;
+    ship.y = WINDOW_HEIGHT / 2;
+    // Réinitialiser les projectiles
+    for (int i = 0; i < MAX_PROJECTILES; ++i) {
+        projectiles[i].active = false;
+    }
+    // Autres réinitialisations si nécessaire
+}
+
 void change_state_to_playing(void) {
     current_game_state = GAME_STATE_PLAYING;
     start_time = SDL_GetTicks(); // Démarre le compteur de score quand le jeu commence réellement
+
 }
 
 void handle_collisions(void) {
@@ -401,17 +461,39 @@ void update_projectiles(float delta_time) {
 }
 
 void shoot_projectile(void) {
-    for (int i = 0; i < MAX_PROJECTILES; ++i) {
-        if (!projectiles[i].active) {
-            projectiles[i].x = enemy_ship.x + enemy_ship.width / 2 - 8; // Centrer le projectile
-            projectiles[i].y = enemy_ship.y + enemy_ship.height; // Partir de la base du vaisseau ennemi
-            projectiles[i].vel_y = 300; // Vitesse de déplacement vers le bas
-            projectiles[i].vel_x = movingRight ? 100 : -100; // Vitesse horizontale
-            projectiles[i].active = true; // Activer le projectile
-            break; // Ne pas créer plus d'un projectile à la fois
+    Uint32 current_time = SDL_GetTicks();
+    int elapsed_time = (current_time - start_time) / 1000; // Temps écoulé en secondes
+
+    // Calculer le nombre de directions actives basé sur le temps écoulé
+    int active_directions = elapsed_time / 10 + 1; // Ajouter une direction toutes les 10 secondes
+    int num_directions = sizeof(shoot_directions) / sizeof(shoot_directions[0]);
+    if (active_directions > num_directions) {
+        active_directions = num_directions; // Limiter au nombre total de directions disponibles
+    }
+
+    // Calculer l'augmentation de la vitesse des projectiles
+    float speed_increase = (elapsed_time / 10) * 50; // Augmenter de 50 unités toutes les 10 secondes
+
+    for (int dir_index = 0; dir_index < active_directions; ++dir_index) {
+        for (int i = 0; i < MAX_PROJECTILES; ++i) {
+            if (!projectiles[i].active) {
+                projectiles[i].x = enemy_ship.x + enemy_ship.width / 2 - 8; // Centrer le projectile
+                projectiles[i].y = enemy_ship.y + enemy_ship.height; // Partir de la base du vaisseau ennemi
+
+                projectiles[i].vel_x = shoot_directions[dir_index].vel_x + speed_increase;
+                projectiles[i].vel_y = shoot_directions[dir_index].vel_y + speed_increase;
+
+                projectiles[i].active = true;
+                break; // Ne pas créer plus d'un projectile à la fois par direction
+            }
         }
     }
 }
+
+
+
+
+
 
 void update_enemy(float delta_time) {
     // Ajouter des tirs ici si nécessaire
@@ -464,8 +546,14 @@ void update(void) {
         if (SDL_GetTicks() - last_key_press_time >= SHIP_TURN_TIME) {
             current_ship_texture = ship_texture_up;
         }
+        Uint32 elapsed_time = SDL_GetTicks() - start_time; // Temps écoulé depuis le début du jeu
+        Uint32 shoot_interval = 750 - (elapsed_time / 10000) * 50; // Réduire l'intervalle de 50 ms toutes les 10 secondes
+
+        if (shoot_interval < 200) { // Limiter l'intervalle minimum à 200 ms
+            shoot_interval = 200;
+        }
         static Uint32 last_shoot_time = 0;
-        if (SDL_GetTicks() - last_shoot_time > 2000) { // Toutes les 2 secondes
+        if (SDL_GetTicks() - last_shoot_time > shoot_interval) {
             shoot_projectile();
             last_shoot_time = SDL_GetTicks();
         }
@@ -528,6 +616,7 @@ void render(void) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_Rect start_game_rect;
+    TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32); // Ajustez la taille selon les besoins
 
     switch (current_game_state) {
     case GAME_STATE_TITLE_SCREEN:
@@ -624,7 +713,7 @@ void render(void) {
         for (int i = 0; i < player_lives; ++i) {
             SDL_RenderCopy(renderer, heart_texture, NULL, &life_rects[i]);
         }
-        TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32); // Ajustez la taille selon les besoins
+        //TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32); // Ajustez la taille selon les besoins
         if (!font_text) {
             fprintf(stderr, "Error loading font for text: %s\n", TTF_GetError());
             exit(1);
@@ -634,6 +723,34 @@ void render(void) {
     case GAME_STATE_GAME_OVER:
         // Dessinez l'écran de game over ici
         // Inclure le score final et les options pour recommencer ou quitter
+
+        // Render the game over text
+        ;
+        int game_over_width, game_over_height;
+        SDL_Rect game_over_rect;
+        SDL_QueryTexture(game_over_texture, NULL, NULL, &game_over_width, &game_over_height);
+        game_over_rect.x = (WINDOW_WIDTH - game_over_width) / 2;
+        game_over_rect.y = (WINDOW_HEIGHT / 2) - game_over_height - 20; // Adjust as needed
+        game_over_rect.w = game_over_width;
+        game_over_rect.h = game_over_height;
+        SDL_RenderCopy(renderer, game_over_texture, NULL, &game_over_rect);
+
+        // Render the restart text
+        int restart_width, restart_height;
+        SDL_Rect restart_rect;
+        SDL_QueryTexture(restart_texture, NULL, NULL, &restart_width, &restart_height);
+        restart_rect.x = (WINDOW_WIDTH - restart_width) / 2;
+        restart_rect.y = (WINDOW_HEIGHT / 2) + 20; // Adjust as needed
+        restart_rect.w = restart_width;
+        restart_rect.h = restart_height;
+        SDL_RenderCopy(renderer, restart_texture, NULL, &restart_rect);
+        TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32); // Ajustez la taille selon les besoins
+        if (font_text == NULL) {
+            fprintf(stderr, "Error loading font for text: %s\n", TTF_GetError());
+            exit(1);
+        }
+        render_score(renderer, font_text, white, score); // Utilisez la fonction render_score pour afficher le score
+        TTF_CloseFont(font_text); // Fermez la police après utilisation
         break;
     }
 
@@ -670,12 +787,23 @@ void destroy_window(void) {
     SDL_DestroyTexture(projectile_texture);
     SDL_DestroyTexture(background_texture);
     SDL_DestroyTexture(heart_texture);
+    Mix_FreeMusic(backgroundMusic);
+    
+    backgroundMusic = NULL;
+    
+
+    // Quitter SDL_mixer
+    Mix_Quit();
+
 
 
     if (font_text != NULL) {
         TTF_CloseFont(font_text);
         font_text = NULL;
     }
+
+    SDL_DestroyTexture(game_over_texture);
+    SDL_DestroyTexture(restart_texture);
     SDL_DestroyTexture(title_texture);
     SDL_DestroyTexture(press_enter_texture);
     SDL_DestroyTexture(limited_edition_texture);
