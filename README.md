@@ -23,3 +23,8 @@ Comment Jouer:
 Installation:
 
 Pour jouer à Danmaku Ultimate, assurez-vous d'avoir installé SDL2, SDL2_image, SDL2_ttf, et SDL2_mixer. Compilez ensuite le code source du jeu avec un compilateur prenant en charge C.
+
+
+Lien Github
+
+https://github.com/davidattip/Projet-C-Danmaku
