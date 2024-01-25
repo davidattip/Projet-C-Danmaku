@@ -7,35 +7,21 @@
 #include "constants.h"
 
 
-// Ajoutez cet énum pour gérer les états du jeu
+// Ajoutez cet Ã©num pour gÃ©rer les Ã©tats du jeu
 typedef enum {
     GAME_STATE_TITLE_SCREEN,
     GAME_STATE_MENU,
-    // Ajoutez d'autres états ici si nécessaire
+    // Ajoutez d'autres Ã©tats ici si nÃ©cessaire
     GAME_STATE_PLAYING,
     GAME_STATE_GAME_OVER
 } GameState;
-
-typedef enum {
-    DIFFICULTY_ASPIRANT,   // Aspirant
-    DIFFICULTY_GUERRIER,   // Guerrier
-    DIFFICULTY_BERSERKER   // Berserker
-} Difficulty;
-
-typedef struct {
-    int max_score_aspirant;
-    int max_score_guerrier;
-    int max_score_berserker;
-} MaxScores;
-MaxScores max_scores;
-
 
 typedef struct {
     float x;
     float y;
     float vel_x; // Ajout de la vitesse horizontale
     float vel_y;
-    bool active; // Indique si le projectile est actif (en déplacement)
+    bool active; // Indique si le projectile est actif (en dÃ©placement)
 } Projectile;
 
 typedef struct {
@@ -47,14 +33,14 @@ Direction shoot_directions[] = {
     {0, 300},     // Bas
     {100, 300},   // Diagonale bas droite
     {-100, 300},  // Diagonale bas gauche
-    {200, 300},   // Plus à droite
-    {-200, 300},  // Plus à gauche
+    {200, 300},   // Plus Ã  droite
+    {-200, 300},  // Plus Ã  gauche
     {-150, 300},
     {150, 300}
-    // Ajoutez plus de directions ici si nécessaire
+    // Ajoutez plus de directions ici si nÃ©cessaire
 };
 
-#define MAX_PROJECTILES 30 // Nombre maximum de projectiles en même temps
+#define MAX_PROJECTILES 30 // Nombre maximum de projectiles en mÃªme temps
 
 
 
@@ -68,11 +54,6 @@ const int SHIP_SPEED = 300;
 const int SHIP_TURN_TIME = 200; // Temps en millisecondes pour afficher le vaisseau tournant
 const int ENEMY_SPEED = 100;
 bool movingRight = true;
-Difficulty current_difficulty = DIFFICULTY_ASPIRANT;
-const char* difficulty_text;
-
-
-
 int player_lives = 3; // Le joueur commence avec 3 vies
 int score = 0;
 int lives = 3;
@@ -84,8 +65,8 @@ SDL_Texture* game_over_texture = NULL;
 SDL_Texture* restart_texture = NULL;
 
 Uint32 start_time = 0;
-SDL_Rect life_rects[3]; // Pour afficher les 3 cœurs
-SDL_Texture* heart_texture = NULL; // Texture pour le cœur
+SDL_Rect life_rects[3]; // Pour afficher les 3 cÂœurs
+SDL_Texture* heart_texture = NULL; // Texture pour le cÂœur
 
 
 // Projectiles
@@ -109,7 +90,7 @@ SDL_Texture* projectile_texture = NULL;
 
 GameState current_game_state = GAME_STATE_TITLE_SCREEN;
 
-// Variable pour suivre l'état du vaisseau
+// Variable pour suivre l'Ã©tat du vaisseau
 Uint32 last_key_press_time = 0;
 SDL_Texture* current_ship_texture = NULL;
 
@@ -219,81 +200,100 @@ SDL_Texture* load_text(const char* text, TTF_Font* font, SDL_Color color) {
 // Setup function that runs once at the beginning of our program
 ///////////////////////////////////////////////////////////////////////////////
 void setup(void) {
-    // Charger les images d'arrière-plan, les textures du vaisseau, etc.
+    // Load the background image
     background_texture = load_texture("image_accueil.png");
+    // Charger les textures pour le vaisseau
     ship_texture_up = load_texture("ship_up.png");
     ship_texture_right = load_texture("ship_right.png");
     ship_texture_left = load_texture("ship_left.png");
-    current_ship_texture = ship_texture_up;
-    enemy_ship_texture = load_texture("enemy_ship.png");
-    projectile_texture = load_texture("enemy_boule.png");
-    heart_texture = load_texture("coeur.png");
-
-    // Charger la musique de fond
+    current_ship_texture = ship_texture_up; // Texture de dÃ©part
+    // Chargement de la musique de fond
     backgroundMusic = Mix_LoadMUS("music_fond.mp3");
     if (backgroundMusic == NULL) {
         fprintf(stderr, "Failed to load background music! SDL_mixer Error: %s\n", Mix_GetError());
+        // GÃ©rer l'erreur ou quitter
     }
-
-    // Initialisation des vies du joueur en fonction de la difficulté sélectionnée
-    switch (current_difficulty) {
-    case DIFFICULTY_ASPIRANT:
-        player_lives = 5;
-        break;
-    case DIFFICULTY_GUERRIER:
-        player_lives = 3;
-        break;
-    case DIFFICULTY_BERSERKER:
-        player_lives = 1;
-        break;
-    }
-
-    // Initialiser les rectangles de vie
+    // Charger la texture du vaisseau ennemi et des projectiles
+    enemy_ship_texture = load_texture("enemy_ship.png");
+    projectile_texture = load_texture("enemy_boule.png");
+    heart_texture = load_texture("coeur.png");
     for (int i = 0; i < player_lives; ++i) {
-        life_rects[i].x = 10 + (i * 30);
-        life_rects[i].y = 10;
-        life_rects[i].w = 20;
-        life_rects[i].h = 20;
+        life_rects[i].x = 10 + (i * 30); // 10 pixels de dÃ©calage plus largeur du cÂœur plus un peu d'espace
+        life_rects[i].y = 10; // 10 pixels du haut de l'Ã©cran
+        life_rects[i].w = 20; // Largeur du cÂœur
+        life_rects[i].h = 20; // Hauteur du cÂœur
     }
 
-    // Charger les polices et créer les textures de texte
-    TTF_Font* font_title = TTF_OpenFont("PermanentMarker-Regular.ttf", 64);
-    TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32);
-    SDL_Color red = { 255, 0, 0, 255 };
-    SDL_Color white = { 255, 255, 255, 255 };
+
+    // Ouvre la police avec une plus grande taille pour le titre
+    TTF_Font* font_title = TTF_OpenFont("PermanentMarker-Regular.ttf", 64); // Ajustez la taille selon les besoins
+    if (!font_title) {
+        fprintf(stderr, "Error loading font for title: %s\n", TTF_GetError());
+        exit(1);
+    }
+
+    // Ouvre la police avec une taille plus petite pour le texte en dessous
+    TTF_Font* font_text = TTF_OpenFont("PermanentMarker-Regular.ttf", 32); // Ajustez la taille selon les besoins
+    if (!font_text) {
+        fprintf(stderr, "Error loading font for text: %s\n", TTF_GetError());
+        exit(1);
+    }
+
+    // DÃ©finit la couleur du texte rouge pour le titre
+    SDL_Color red = { 255, 0, 0, 255 }; // Rouge
+
+    // DÃ©finit la couleur du texte blanc pour le reste du texte
+    SDL_Color white = { 255, 255, 255, 255 }; // Blanc
+
+    // CrÃ©e des textures pour le texte
     title_texture = load_text("DANMAKU ULTIMATE", font_title, red);
     press_enter_texture = load_text("Press Enter to Go to MENU", font_text, white);
     limited_edition_texture = load_text("Limited Edition", font_text, white);
     game_over_texture = load_text("GAME OVER", font_title, red);
     restart_texture = load_text("Press Enter to Restart", font_text, white);
+
+    // CrÃ©ation des textures pour les options de menu
     start_game_texture = load_text("Commencer le jeu", font_text, white);
-    choose_difficulty_texture = load_text("Choisir la difficulté", font_text, white);
+    choose_difficulty_texture = load_text("Choisir la difficultÃ©", font_text, white);
+
+    // Ferme les polices aprÃ¨s utilisation
     TTF_CloseFont(font_title);
     TTF_CloseFont(font_text);
 
-    // Initialiser les objets du jeu
+    
+
+    // Initialize  ball object moving down at a constant velocity
+    ball.x = 10;
+    ball.y = 20;
+    ball.width = 20;
+    ball.height = 20;
+    ball.vel_x = 180;
+    ball.vel_y = 140;
+
+    // Initialiser le vaisseau spatial
     ship.x = WINDOW_WIDTH / 2;
     ship.y = WINDOW_HEIGHT / 2;
-    ship.width = 64;
-    ship.height = 64;
+    ship.width = 64;  // La largeur de la texture du vaisseau
+    ship.height = 64; // La hauteur de la texture du vaisseau
     ship.vel_x = 0;
     ship.vel_y = 0;
-    enemy_ship.x = WINDOW_WIDTH / 2 - 32;
-    enemy_ship.y = 50;
-    enemy_ship.width = 64;
-    enemy_ship.height = 64;
 
+    // Initialiser le vaisseau ennemi
+    enemy_ship.x = WINDOW_WIDTH / 2 - 32; // CentrÃ© en x, 32 Ã©tant la moitiÃ© de la largeur du vaisseau ennemi
+    enemy_ship.y = 50; // Un peu en dessous du haut de l'Ã©cran
+    enemy_ship.width = 64; // Supposons que le vaisseau ennemi a une largeur de 64 pixels
+    enemy_ship.height = 64; // Supposons que le vaisseau ennemi a une hauteur de 64 pixels
+    // Initialiser les projectiles
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         projectiles[i].active = false;
     }
-
-    // Lancer la musique de fond
+    // Dans setup() ou au dÃ©but d'un niveau
     if (backgroundMusic != NULL) {
-        Mix_PlayMusic(backgroundMusic, -1);
+        Mix_PlayMusic(backgroundMusic, -1); // -1 signifie en boucle indÃ©finiment
     }
+
+    
 }
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -301,7 +301,7 @@ void setup(void) {
 ///////////////////////////////////////////////////////////////////////////////
 void process_input(void) {
     SDL_Event event;
-    static int menu_option = 0; // 0 pour "Commencer", 1 pour "Difficulté"
+    static int menu_option = 0; // 0 pour "Commencer", 1 pour "DifficultÃ©"
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
         case SDL_QUIT:
@@ -316,37 +316,24 @@ void process_input(void) {
                 break;
             case GAME_STATE_MENU:
                 // Ici, ajoutez la logique pour naviguer dans le menu
-                // par exemple, utiliser les touches fléchées pour changer de sélection,
-                // et Entrée pour sélectionner une option.
+                // par exemple, utiliser les touches flÃ©chÃ©es pour changer de sÃ©lection,
+                // et EntrÃ©e pour sÃ©lectionner une option.
 
                 if (event.key.keysym.sym == SDLK_RETURN) {
-                    if (menu_option == 0) { // Commencer le jeu
+                    if (menu_option == 0) {
                         current_game_state = GAME_STATE_PLAYING;
-                        switch (current_difficulty) {
-                        case DIFFICULTY_ASPIRANT:
-                            player_lives = 5;
-                            break;
-                        case DIFFICULTY_GUERRIER:
-                            player_lives = 3;
-                            break;
-                        case DIFFICULTY_BERSERKER:
-                            player_lives = 1;
-                            break;
-                        }
                     }
-                    else if (menu_option == 1) { // Choisir la difficulté
-                        current_difficulty++;
-                        if (current_difficulty > DIFFICULTY_BERSERKER) {
-                            current_difficulty = DIFFICULTY_ASPIRANT;
-                        }
+                    else if (menu_option == 1) {
+                        // Logique pour choisir la difficultÃ©
                     }
                 }
                 else if (event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SDLK_UP) {
                     menu_option = 1 - menu_option; // Alterne entre 0 et 1
                 }
+
                 break;
             case GAME_STATE_PLAYING:
-                // Ici, ajoutez la logique pour le déplacement du joueur, le tir, etc.
+                // Ici, ajoutez la logique pour le dÃ©placement du joueur, le tir, etc.
                 switch (event.key.keysym.sym) {
                 case SDLK_UP:
                     ship.vel_y = -SHIP_SPEED;
@@ -372,8 +359,6 @@ void process_input(void) {
                     // Reset the game state and player lives to restart the game
                     current_game_state = GAME_STATE_PLAYING;
                     player_lives = 3;
-                    score = 0; // Réinitialisation du score
-                    start_time = SDL_GetTicks(); // Réinitialisation du temps de début
                     setup(); // Reset the game setup
                     
                 }
@@ -390,7 +375,7 @@ void process_input(void) {
                 }
                 if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT) {
                     ship.vel_x = 0;
-                    // Réinitialiser la texture du vaisseau après la fin du mouvement
+                    // RÃ©initialiser la texture du vaisseau aprÃ¨s la fin du mouvement
                     if (SDL_GetTicks() - last_key_press_time >= SHIP_TURN_TIME) {
                         current_ship_texture = ship_texture_up;
                     }
@@ -400,28 +385,6 @@ void process_input(void) {
         }
     }
 }
-
-void load_max_scores(MaxScores* scores) {
-    FILE* file = fopen("max_scores.txt", "r");
-    if (file != NULL) {
-        fscanf_s(file, "%d %d %d", &scores->max_score_aspirant, &scores->max_score_guerrier, &scores->max_score_berserker);
-        fclose(file);
-    }
-    else {
-        scores->max_score_aspirant = 0;
-        scores->max_score_guerrier = 0;
-        scores->max_score_berserker = 0;
-    }
-}
-
-void save_max_scores(MaxScores* scores) {
-    FILE* file = fopen("max_scores.txt", "w");
-    if (file != NULL) {
-        fprintf(file, "%d %d %d", scores->max_score_aspirant, scores->max_score_guerrier, scores->max_score_berserker);
-        fclose(file);
-    }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Setup function that runs once at the beginning of our program
@@ -452,29 +415,29 @@ void reset_game(void) {
     player_lives = 3;
     score = 0;
     start_time = SDL_GetTicks();
-    // Réinitialiser d'autres états de jeu si nécessaire
-    // Réinitialiser la position du vaisseau, etc.
+    // RÃ©initialiser d'autres Ã©tats de jeu si nÃ©cessaire
+    // RÃ©initialiser la position du vaisseau, etc.
     ship.x = WINDOW_WIDTH / 2;
     ship.y = WINDOW_HEIGHT / 2;
-    // Réinitialiser les projectiles
+    // RÃ©initialiser les projectiles
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         projectiles[i].active = false;
     }
-    // Autres réinitialisations si nécessaire
+    // Autres rÃ©initialisations si nÃ©cessaire
 }
 
 void change_state_to_playing(void) {
     current_game_state = GAME_STATE_PLAYING;
-    start_time = SDL_GetTicks(); // Démarre le compteur de score quand le jeu commence réellement
+    start_time = SDL_GetTicks(); // DÃ©marre le compteur de score quand le jeu commence rÃ©ellement
 
 }
 
 void handle_collisions(void) {
     for (int i = 0; i < MAX_PROJECTILES; ++i) {
         if (projectiles[i].active && check_collision(&ship, &projectiles[i])) {
-            // Gérer la collision, par exemple en finissant le jeu
-            projectiles[i].active = false; // Désactiver le projectile
-            player_lives--; // Décrémenter une vie
+            // GÃ©rer la collision, par exemple en finissant le jeu
+            projectiles[i].active = false; // DÃ©sactiver le projectile
+            player_lives--; // DÃ©crÃ©menter une vie
             if (player_lives <= 0) {
                 current_game_state = GAME_STATE_GAME_OVER;
             }
@@ -489,7 +452,7 @@ void update_projectiles(float delta_time) {
             projectiles[i].x += projectiles[i].vel_x * delta_time;
             projectiles[i].y += projectiles[i].vel_y * delta_time;
 
-            // Désactiver le projectile s'il sort de l'écran
+            // DÃ©sactiver le projectile s'il sort de l'Ã©cran
             if (projectiles[i].y > WINDOW_HEIGHT || projectiles[i].x < 0 || projectiles[i].x > WINDOW_WIDTH) {
                 projectiles[i].active = false;
             }
@@ -499,9 +462,9 @@ void update_projectiles(float delta_time) {
 
 void shoot_projectile(void) {
     Uint32 current_time = SDL_GetTicks();
-    int elapsed_time = (current_time - start_time) / 1000; // Temps écoulé en secondes
+    int elapsed_time = (current_time - start_time) / 1000; // Temps Ã©coulÃ© en secondes
 
-    // Calculer le nombre de directions actives basé sur le temps écoulé
+    // Calculer le nombre de directions actives basÃ© sur le temps Ã©coulÃ©
     int active_directions = elapsed_time / 10 + 1; // Ajouter une direction toutes les 10 secondes
     int num_directions = sizeof(shoot_directions) / sizeof(shoot_directions[0]);
     if (active_directions > num_directions) {
@@ -509,7 +472,7 @@ void shoot_projectile(void) {
     }
 
     // Calculer l'augmentation de la vitesse des projectiles
-    float speed_increase = (elapsed_time / 10) * 50; // Augmenter de 50 unités toutes les 10 secondes
+    float speed_increase = (elapsed_time / 10) * 50; // Augmenter de 50 unitÃ©s toutes les 10 secondes
 
     for (int dir_index = 0; dir_index < active_directions; ++dir_index) {
         for (int i = 0; i < MAX_PROJECTILES; ++i) {
@@ -521,7 +484,7 @@ void shoot_projectile(void) {
                 projectiles[i].vel_y = shoot_directions[dir_index].vel_y + speed_increase;
 
                 projectiles[i].active = true;
-                break; // Ne pas créer plus d'un projectile à la fois par direction
+                break; // Ne pas crÃ©er plus d'un projectile Ã  la fois par direction
             }
         }
     }
@@ -529,36 +492,12 @@ void shoot_projectile(void) {
 
 
 
-void render_max_score(SDL_Renderer* renderer, TTF_Font* font, SDL_Color color, MaxScores scores, Difficulty difficulty) {
-    int max_score = 0;
-    switch (difficulty) {
-    case DIFFICULTY_ASPIRANT:
-        max_score = scores.max_score_aspirant;
-        break;
-    case DIFFICULTY_GUERRIER:
-        max_score = scores.max_score_guerrier;
-        break;
-    case DIFFICULTY_BERSERKER:
-        max_score = scores.max_score_berserker;
-        break;
-    }
-
-    char max_score_text[50];
-    sprintf_s(max_score_text, sizeof(max_score_text), "Max Score: %d", max_score);
-    SDL_Texture* max_score_texture = load_text(max_score_text, font, color);
-    SDL_Rect max_score_rect;
-    SDL_QueryTexture(max_score_texture, NULL, NULL, &max_score_rect.w, &max_score_rect.h);
-    max_score_rect.x = (WINDOW_WIDTH - max_score_rect.w) / 2;
-    max_score_rect.y = 50; // Ajustez la position Y comme vous le souhaitez
-    SDL_RenderCopy(renderer, max_score_texture, NULL, &max_score_rect);
-    SDL_DestroyTexture(max_score_texture);
-}
 
 
 
 void update_enemy(float delta_time) {
-    // Ajouter des tirs ici si nécessaire
-    // Par exemple, tirer un projectile à intervalles réguliers
+    // Ajouter des tirs ici si nÃ©cessaire
+    // Par exemple, tirer un projectile Ã  intervalles rÃ©guliers
       // Faire bouger l'ennemi horizontalement
     if (movingRight) {
         enemy_ship.x += ENEMY_SPEED * delta_time;
@@ -585,32 +524,32 @@ void update(void) {
 
     switch (current_game_state) {
     case GAME_STATE_TITLE_SCREEN:
-        // Pas de mise à jour nécessaire pour l'écran titre
+        // Pas de mise Ã  jour nÃ©cessaire pour l'Ã©cran titre
         break;
     case GAME_STATE_MENU:
-        // Mettez à jour la logique du menu ici si nécessaire
+        // Mettez Ã  jour la logique du menu ici si nÃ©cessaire
         break;
     case GAME_STATE_PLAYING:
-        score = (SDL_GetTicks() - start_time) / 1000; // Convertissez le temps en secondes
-        // Mettez à jour la position des objets, vérifiez les collisions, etc.
-        // Mise à jour de la position du vaisseau
+        // Le score est mis Ã  jour uniquement dans GAME_STATE_PLAYING
+        // Mettez Ã  jour la position des objets, vÃ©rifiez les collisions, etc.
+        // Mise Ã  jour de la position du vaisseau
         ship.x += ship.vel_x * delta_time;
         ship.y += ship.vel_y * delta_time;
 
-        // Vérifier que le vaisseau ne sort pas de l'écran
+        // VÃ©rifier que le vaisseau ne sort pas de l'Ã©cran
         if (ship.x < 0) ship.x = 0;
         if (ship.x + ship.width > WINDOW_WIDTH) ship.x = WINDOW_WIDTH - ship.width;
         if (ship.y < 0) ship.y = 0;
         if (ship.y + ship.height > WINDOW_HEIGHT) ship.y = WINDOW_HEIGHT - ship.height;
 
-        // Réinitialiser la texture du vaisseau après la fin du mouvement
+        // RÃ©initialiser la texture du vaisseau aprÃ¨s la fin du mouvement
         if (SDL_GetTicks() - last_key_press_time >= SHIP_TURN_TIME) {
             current_ship_texture = ship_texture_up;
         }
-        Uint32 elapsed_time = SDL_GetTicks() - start_time; // Temps écoulé depuis le début du jeu
-        Uint32 shoot_interval = 750 - (elapsed_time / 10000) * 50; // Réduire l'intervalle de 50 ms toutes les 10 secondes
+        Uint32 elapsed_time = SDL_GetTicks() - start_time; // Temps Ã©coulÃ© depuis le dÃ©but du jeu
+        Uint32 shoot_interval = 750 - (elapsed_time / 10000) * 50; // RÃ©duire l'intervalle de 50 ms toutes les 10 secondes
 
-        if (shoot_interval < 200) { // Limiter l'intervalle minimum à 200 ms
+        if (shoot_interval < 200) { // Limiter l'intervalle minimum Ã  200 ms
             shoot_interval = 200;
         }
         static Uint32 last_shoot_time = 0;
@@ -618,14 +557,14 @@ void update(void) {
             shoot_projectile();
             last_shoot_time = SDL_GetTicks();
         }
-        // Mise à jour de l'ennemi
+        // Mise Ã  jour de l'ennemi
         update_enemy(delta_time);
         update_projectiles(delta_time);
-        // Gérer les collisions
+        // GÃ©rer les collisions
         handle_collisions();
         break;
     case GAME_STATE_GAME_OVER:
-        // Peut-être clignoter le texte ou mettre en place un délai avant de permettre la réinitialisation
+        // Peut-Ãªtre clignoter le texte ou mettre en place un dÃ©lai avant de permettre la rÃ©initialisation
         break;
     }
 
@@ -658,7 +597,7 @@ void update(void) {
     }*/
 }
 
-// Fonction pour rendre le score à l'écran
+// Fonction pour rendre le score Ã  l'Ã©cran
 void render_score(SDL_Renderer* renderer, TTF_Font* font, SDL_Color color, int score) {
 
     char score_text[50];
@@ -681,9 +620,9 @@ void render(void) {
 
     switch (current_game_state) {
     case GAME_STATE_TITLE_SCREEN:
-        // Dessinez l'écran titre ici
+        // Dessinez l'Ã©cran titre ici
 
-        // Dessine l'arrière-plan
+        // Dessine l'arriÃ¨re-plan
         SDL_RenderCopy(renderer, background_texture, NULL, NULL);
 
         // Centre le texte du titre
@@ -706,7 +645,7 @@ void render(void) {
         enter_rect.h = enter_height;
         SDL_RenderCopy(renderer, press_enter_texture, NULL, &enter_rect);
 
-        // Positionne le texte "Limited Edition" en bas de l'écran
+        // Positionne le texte "Limited Edition" en bas de l'Ã©cran
         int limited_width, limited_height;
         SDL_Rect limited_rect;
         SDL_QueryTexture(limited_edition_texture, NULL, NULL, &limited_width, &limited_height);
@@ -717,11 +656,11 @@ void render(void) {
         SDL_RenderCopy(renderer, limited_edition_texture, NULL, &limited_rect);
 
         
-        // Ajoutez d'autres textures si nécessaire
+        // Ajoutez d'autres textures si nÃ©cessaire
         break;
     case GAME_STATE_MENU:
         // Dessinez le menu ici
-        // Inclure le dessin des options de menu et des sélections actuelles
+        // Inclure le dessin des options de menu et des sÃ©lections actuelles
 
          // Dessinez ici les options de menu
         
@@ -735,36 +674,9 @@ void render(void) {
         choose_difficulty_rect.x = (WINDOW_WIDTH - choose_difficulty_rect.w) / 2;
         choose_difficulty_rect.y = WINDOW_HEIGHT / 2; // Ajustez ces positions selon les besoins
         SDL_RenderCopy(renderer, choose_difficulty_texture, NULL, &choose_difficulty_rect);
-
-        // Afficher le niveau de difficulté actuel
-        const char* difficulty_text = NULL;
-
-        switch (current_difficulty) {
-        case DIFFICULTY_ASPIRANT:
-            difficulty_text = "Aspirant";
-            break;
-        case DIFFICULTY_GUERRIER:
-            difficulty_text = "Guerrier";
-            break;
-        case DIFFICULTY_BERSERKER:
-            difficulty_text = "Berserker";
-            break;
-        default:
-            difficulty_text = "Inconnu"; // Valeur par défaut pour éviter les utilisations non initialisées
-            break;
-        }
-        SDL_Texture* difficulty_texture = load_text(difficulty_text, font_text, white);
-        SDL_Rect difficulty_rect = {
-            (WINDOW_WIDTH - start_game_rect.w) / 2, // Utilisez une position adaptée
-            choose_difficulty_rect.y + 50, // Juste en dessous de l'option de difficulté
-            0, 0
-        };
-        SDL_QueryTexture(difficulty_texture, NULL, NULL, &difficulty_rect.w, &difficulty_rect.h);
-        SDL_RenderCopy(renderer, difficulty_texture, NULL, &difficulty_rect);
-        SDL_DestroyTexture(difficulty_texture);
         break;
 
-        
+        break;
     case GAME_STATE_PLAYING:
         // Dessinez les objets de jeu ici
         ;
@@ -809,7 +721,7 @@ void render(void) {
         render_score(renderer, font_text, white, score);
         break;
     case GAME_STATE_GAME_OVER:
-        // Dessinez l'écran de game over ici
+        // Dessinez l'Ã©cran de game over ici
         // Inclure le score final et les options pour recommencer ou quitter
 
         // Render the game over text
@@ -838,26 +750,7 @@ void render(void) {
             exit(1);
         }
         render_score(renderer, font_text, white, score); // Utilisez la fonction render_score pour afficher le score
-        TTF_CloseFont(font_text); // Fermez la police après utilisation
-        switch (current_difficulty) {
-        case DIFFICULTY_ASPIRANT:
-            if (score > max_scores.max_score_aspirant) {
-                max_scores.max_score_aspirant = score;
-            }
-            break;
-        case DIFFICULTY_GUERRIER:
-            if (score > max_scores.max_score_guerrier) {
-                max_scores.max_score_guerrier = score;
-            }
-            break;
-        case DIFFICULTY_BERSERKER:
-            if (score > max_scores.max_score_berserker) {
-                max_scores.max_score_berserker = score;
-            }
-            break;
-        }
-        save_max_scores(&max_scores); // Enregistrer les nouveaux scores maximaux
-
+        TTF_CloseFont(font_text); // Fermez la police aprÃ¨s utilisation
         break;
     }
 
@@ -886,7 +779,7 @@ void render(void) {
 // Function to destroy SDL window and renderer
 ///////////////////////////////////////////////////////////////////////////////
 void destroy_window(void) {
-    // Libérer les textures du vaisseau spatial
+    // LibÃ©rer les textures du vaisseau spatial
     SDL_DestroyTexture(ship_texture_up);
     SDL_DestroyTexture(ship_texture_right);
     SDL_DestroyTexture(ship_texture_left);
@@ -925,10 +818,8 @@ void destroy_window(void) {
 // Main function
 ///////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* args[]) {
-    srand(time(NULL)); // Initialisation pour la génération de nombres aléatoires
+    srand(time(NULL)); // Initialisation pour la gÃ©nÃ©ration de nombres alÃ©atoires
     game_is_running = initialize_window();
-
-    load_max_scores(&max_scores); // Charger les scores maximaux
 
     setup();
 
